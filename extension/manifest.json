@@ -26,8 +26,7 @@
         "js/vendor/bodymovin.min.js",
         // "js/vendor/stm_web.min.js",
         "js/content.js",
-        "js/vendor/webrtc_vad.js",
-        "js/intentParser.js"
+        "js/vendor/webrtc_vad.js"
       ],
       "css": [
         "css/main.css",
@@ -40,7 +39,6 @@
       //"js/vendor/browser-polyfill.min.js",
       "js/background.js",
       "js/browserService.js",
-      "js/intentParser.js",
       "js/vendor/fuse.min.js"
     ]
   },
@@ -70,7 +68,8 @@
     "storage",
     "find",
     "tabs",
-    "nativeMessaging"
+    "nativeMessaging",
+    "history"
   ],
   "browser_action": {
     "browser_style": true,

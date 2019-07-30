@@ -20,9 +20,7 @@ browser.omnibox.setDefaultSuggestion({
 });
 
 browser.omnibox.onInputEntered.addListener(async (text, disposition) => {
-  const intentData = parseIntent(text);
-  console.log(intentData);
-  executeIntentForAction(intentData);
+  parseIntent(text);
 });
 
 const triggerExtension = async () => {

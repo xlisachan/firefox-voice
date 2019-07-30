@@ -3,46 +3,66 @@ var port;
 const connected = p => {
   port = p;
   port.onMessage.addListener(async function(data) {
-    await executeIntentForAction(data);
+    await parseIntent(data.transcript);
   });
 };
 
 browser.runtime.onConnect.addListener(connected);
 
-const executeIntentForAction = async data => {
-  const action = data.action;
-  const content = data.content;
+const parseIntent = async transcript => {
+  console.log(
+    `[Snips Intent Parsing] Sending transcript to Snips NLU: ${transcript}`
+  );
+  var snipsResults = await browser.runtime.sendNativeMessage(
+    "snips_nlu",
+    transcript
+  );
+  console.log(`Snips response!!!`);
+  console.log(snipsResults);
+  await executeActionForIntent(snipsResults);
+};
 
-  switch (action) {
+const executeActionForIntent = async data => {
+  const intent = data.intent.intentName.replace("julia:", "");
+  const slots = data.slots;
+  const simpleSlot = slots.length ? slots[0].value.value : ""; // TODO FIX
+
+  console.log(
+    `INTENT: ${intent} \n\n SLOTS: ${JSON.stringify(
+      slots
+    )} \n\n SIMPLE SLOT: ${simpleSlot}`
+  );
+
+  switch (intent) {
     case "mute":
       mute();
       break;
     case "unmute":
       unmute();
       break;
-    case "find":
-      await find(content);
+    case "FindTab":
+      await superNavigate(simpleSlot);
       break;
     case "play":
-      play(content);
+      play(simpleSlot);
       break;
     case "pause":
       pause();
       break;
-    case "navigate":
-      navigate(content);
+    case "openWebsite":
+      superNavigate(simpleSlot);
       break;
     case "search":
-      search(content);
+      superNavigate(simpleSlot);
       break;
     case "amazonSearch":
-      amazonSearch(content);
+      amazonSearch(simpleSlot);
       break;
     case "googleAssistant":
-      googleAssistant(content);
+      googleAssistant(simpleSlot);
       break;
     case "alexa":
-      alexa(content);
+      alexa(simpleSlot);
       break;
     case "dismissCurrentTab":
       dismissExtensionTab(0);
@@ -51,7 +71,7 @@ const executeIntentForAction = async data => {
       read();
       break;
     default:
-      search(content);
+      search(simpleSlot);
       break;
   }
 };
@@ -175,7 +195,7 @@ const find = async query => {
   const tabs = await browser.tabs.query({});
 
   for (let tab of tabs) {
-    if (tab.id === extensionTabId) {
+    if (tab.id === extensionTabId || tab.id === triggeringTabId) {
       continue;
     }
 
@@ -186,7 +206,6 @@ const find = async query => {
     };
 
     combinedTabContent.push(result);
-    console.log("i am on tab " + tab.id);
   }
 
   combinedTabContent = combinedTabContent.flat();
@@ -195,12 +214,7 @@ const find = async query => {
   let fuse = new Fuse(combinedTabContent, options);
   const matches = fuse.search(query);
   console.log(matches);
-  // TODO account for multiple matches
-  const topMatch = parseInt(matches[0].item);
-  await browser.tabs.update(topMatch, {
-    active: true,
-  });
-  dismissExtensionTab();
+  return matches;
 };
 
 const mute = () => {
@@ -317,9 +331,71 @@ const constructAmazonQuery = query => {
 };
 
 const navigateToURLAfterTimeout = searchURL => {
-  let dismissMuteTab = setTimeout(function() {
+  setTimeout(function() {
     browser.tabs.update({
       url: searchURL,
     });
   }, 1000);
+};
+
+const searchRecentHistory = async query => {
+  console.log("the query is ");
+  console.log(query);
+
+  const searchResults = await browser.history.search({
+    text: query,
+    startTime: 0,
+    maxResults: 1,
+  });
+
+  console.log(searchResults);
+  return searchResults;
+};
+
+const supportedSearchEngine = query => {
+  browser.search.search({
+    query: query,
+    engine: "Wikipedia (en)", // TODO FIX
+    tabId: extensionTabId,
+  });
+};
+
+const superNavigate = async query => {
+  const matchingTabs = await find(query);
+  console.log(JSON.stringify(matchingTabs));
+  const matchingTab = matchingTabs[0];
+  if (matchingTab && 1 - matchingTab.score > 0.8) {
+    const matchingTabId = parseInt(matchingTab.item);
+    setActiveTab(matchingTabId);
+    return;
+  }
+
+  let topHistoryResult = await searchRecentHistory(query);
+  console.log("the top history result is this!!!");
+  console.log(JSON.stringify(topHistoryResult));
+  if (topHistoryResult.length) {
+    topHistoryResult = topHistoryResult[0];
+    navigateToURLAfterTimeout(topHistoryResult.url);
+    return;
+  }
+
+  // supportedSearchEngineDetected =
+
+  // if (supportedSearchEngineDetected) {
+  //     supportedSearchEngine(query, searchEngine);
+  //     return;
+  // }
+
+  // If all the previous efforts to find a relevant page fail, default to I'm Feeling Lucky Google Search
+  navigate(query);
+};
+
+const setActiveTab = tabId => {
+  browser.tabs
+    .update(tabId, {
+      active: true,
+    })
+    .then(() => {
+      dismissExtensionTab();
+    });
 };
