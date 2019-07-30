@@ -41,31 +41,6 @@ const LANGUAGE = "en-US";
   // Initialize NativeMessaging port for Google Assistant + Alexa
   var port = browser.runtime.connect({ name: "cs-port" });
 
-  port.onMessage.addListener(function(m) {
-    console.log("In content script, received message from background script: ");
-    console.log(m.type);
-    if (m.type == "noAudibleTabs") {
-    } else if (m.type == "muting") {
-      onMute();
-    } else if (m.type == "googleAssistant") {
-      console.log("THE EVENT TYPE IS....");
-      console.log(m.event);
-      if (m.event == "PROCESSING") {
-        externalAssistantProcessingState(m.type);
-      } else if (m.event == "GOOGLE_RESPONSE") {
-        displayGoogleResults(m.content);
-      }
-    } else if (m.type == "alexa") {
-      console.log("THE EVENT TYPE IS....");
-      console.log(m.event);
-      if (m.event == "PROCESSING") {
-        externalAssistantProcessingState(m.type);
-      } else if (m.event == "ALEXA_RESPONSE") {
-        displayGoogleResults(m.content);
-      }
-    }
-  });
-
   let mediaRecorder = null;
   const STT_SERVER_URL = "https://speaktome-2.services.mozilla.com";
 

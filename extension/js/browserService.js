@@ -58,12 +58,6 @@ const executeActionForIntent = async data => {
     case "amazonSearch":
       amazonSearch(simpleSlot);
       break;
-    case "googleAssistant":
-      googleAssistant(simpleSlot);
-      break;
-    case "alexa":
-      alexa(simpleSlot);
-      break;
     case "dismissCurrentTab":
       dismissExtensionTab(0);
       break;
@@ -76,69 +70,11 @@ const executeActionForIntent = async data => {
   }
 };
 
-const googleAssistant = query => {
-  console.log(`Sending query to Google Assistant service:  ${query}`);
-  var sending = browser.runtime.sendNativeMessage(
-    "google_assistant_foxvoice",
-    query
-  );
-
-  // Send a message back to the content script to add a fancy little animation
-  port.postMessage({
-    type: "googleAssistant",
-    event: "PROCESSING",
-  });
-
-  sending.then(
-    results => {
-      console.log(`Assistant response!!!`);
-      console.log(results);
-
-      port.postMessage({
-        type: "googleAssistant",
-        event: "GOOGLE_RESPONSE",
-        content: results,
-      });
-    },
-    error => {
-      console.error(error);
-    }
-  );
-};
-
-const alexa = query => {
-  console.log(`Sending query to Alexa service:  ${query}`);
-  var sending = browser.runtime.sendNativeMessage("alexa_foxvoice", query);
-
-  // Send a message back to the content script to add a fancy little animation
-  port.postMessage({
-    type: "alexa",
-    event: "PROCESSING",
-  });
-
-  sending.then(
-    results => {
-      console.log(`Assistant response!!!`);
-      console.log(results);
-
-      port.postMessage({
-        type: "alexa",
-        event: "ALEXA_RESPONSE",
-        content: results,
-      });
-    },
-    error => {
-      console.error(error);
-    }
-  );
-};
-
 const read = () => {
   browser.tabs.toggleReaderMode(triggeringTabId).then(
     () => {
-      console.log("I GOT HEEERE");
       browser.tabs.executeScript(triggeringTabId, {
-        code: `setTimeout(function(){ console.log("why notttt"); document.getElementsByClassName("narrate-start-stop")[0].click(); }, 1000);`,
+        code: `setTimeout(function(){ document.getElementsByClassName("narrate-start-stop")[0].click(); }, 1000);`,
       });
       dismissExtensionTab();
     },
