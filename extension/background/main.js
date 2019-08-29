@@ -7,6 +7,12 @@ this.main = (function() {
       return intentRunner.runIntent(desc);
     } else if (message.type === "getExamples") {
       return intentExamples.getExamples(message.number || 2);
+    } else if (message.type === "bouncePopup") {
+      browser.experiments.voice.bouncePopup();
+      setTimeout(() => {
+        browser.experiments.voice.bouncePopup();
+      }, 100);
+      return null;
     }
     log.error(
       `Received message with unexpected type (${message.type}): ${message}`

@@ -1,0 +1,15 @@
+[
+  {
+    "namespace": "experiments.voice",
+    "description": "Firefox Voice internal API",
+    "functions": [
+      {
+        "name": "bouncePopup",
+        "type": "function",
+        "description": "Forces the popup to close and open again",
+        "parameters": [],
+        "async": true
+      }
+    ]
+  }
+]

@@ -65,5 +65,15 @@
   // These are actually internal settings for the extension:
   "settings": {
     "logLevel": "debug"
+  },
+  "experiment_apis": {
+    "voice": {
+      "schema": "experiments/voice/schema.json",
+      "parent": {
+        "scopes": ["addon_parent"],
+        "script": "experiments/voice/api.js",
+        "paths": [["experiments", "voice"]]
+      }
+    }
   }
 }

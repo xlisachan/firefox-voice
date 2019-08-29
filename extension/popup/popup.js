@@ -12,7 +12,8 @@ this.popup = (function() {
         isWaitingForPermission &&
         Date.now() - isWaitingForPermission < FAST_PERMISSION_CLOSE
       ) {
-        startOnboarding();
+        // browser.runtime.sendMessage({ type: "bouncePopup" });
+        // startOnboarding();
       }
     });
     try {
@@ -22,8 +23,9 @@ this.popup = (function() {
     } catch (e) {
       isWaitingForPermission = false;
       if (e.name === "NotAllowedError" || e.name === "TimeoutError") {
-        startOnboarding();
-        window.close();
+        browser.runtime.sendMessage({ type: "bouncePopup" });
+        // startOnboarding();
+        // window.close();
         return;
       }
       throw e;
