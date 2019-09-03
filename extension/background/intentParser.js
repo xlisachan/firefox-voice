@@ -1,8 +1,8 @@
-/* globals log */
+/* globals log, util */
 this.intentParser = (function() {
   const exports = {};
 
-  const DEFAULT_INTENT = "search";
+  const DEFAULT_INTENT = "navigation.search";
   const DEFAULT_SLOT = "query";
 
   /*
@@ -14,7 +14,7 @@ this.intentParser = (function() {
   */
 
   const ENTITY_TYPES = {
-    serviceName: "google slides|google docs|spotify|goodreads|mdn|coursera|google scholar|google drive|calendar|google calendar".split(
+    serviceName: "google slides|google docs|spotify|goodreads|mdn|coursera|google scholar|google drive|calendar|google calendar|mail| google mail|gmail".split(
       "|"
     ),
   };
@@ -44,6 +44,10 @@ this.intentParser = (function() {
         }
       }
       return result;
+    }
+
+    getMatchers() {
+      return [this];
     }
 
     _phraseToRegex(toParse) {
@@ -157,81 +161,41 @@ this.intentParser = (function() {
       }
       return null;
     }
+
+    getMatchers() {
+      return this.matchers;
+    }
   });
 
-  // TODO: make these part of intent registration
-  const INTENTS = {
-    find: {
-      matcher: new MatchSet(`
-      (find | bring me to) (my | the |) [query] (tab |)
-      `),
-    },
-    navigate: {
-      matcher: new MatchSet(`
-      (bring me | go | navigate) (to | open | find | show me) [query]
-      `),
-    },
-    unmute: {
-      matcher: new MatchSet(`
-      unmute
-      `),
-    },
-    mute: {
-      matcher: new MatchSet(`
-      (mute | turn off) (whatever is |) (playing | all) (the |) (music | audio | sound | everything |)
-      quiet
-      shut up
-      stop
-      `),
-    },
-    /*
-    weather: {
-      matches: [
-        /(?:(?:what's the |what is the )?(weather|forecast|temperature) (?:in |for )?(.*))|(?:(.* weather))/i,
-      ],
-      slots: ["place"],
-    },
-    */
-    /*
-    timer: {
-      matches: [
-        /(?:(?:set |start )(?:a )?timer (.*))|(.*) timer/i,
-      ],
-      slots: ["time", "time"],
-    },
-    */
-    play: {
-      matcher: new MatchSet(`
-      play [query]
-      `),
-    },
-    pause: {
-      matcher: new MatchSet(`
-      pause
-      `),
-    },
-    read: {
-      matcher: new MatchSet(`
-      read (this |) (tab |)
-      `),
-    },
-    bangSearch: {
-      matcher: new MatchSet(`
-      (do a |) (search | query | look up | lookup | look on | look for) [service:serviceName] (for | for the |) [query]
-      (do a |) (search | query | find | find me | look up | lookup | look on | look for) (my | on | for |) (the |) [query] on [service:serviceName]
-      `),
-    },
-    search: {
-      matcher: new MatchSet(`
-      (do a |) (search | query | find | find me | google | look up | lookup | look on | look for) (google | the web | the internet |) (for |) [query] (on the web |)
-      `),
-    },
+  // Populated by registerMatcher:
+  const INTENTS = {};
+  const INTENT_PRIORITY_NAMES = [];
+  let INTENT_NAMES = [];
+  const PRIORITIES = {
+    low: -1,
+    "": 0,
+    high: 1,
   };
 
-  exports.parse = function parse(text) {
+  exports.registerMatcher = function(intentName, matcher, priority) {
+    if (INTENTS[intentName]) {
+      throw new Error(`Intent ${intentName} has already been registered`);
+    }
+    if (typeof matcher === "string") {
+      matcher = new MatchSet(matcher);
+    }
+    INTENT_PRIORITY_NAMES.push([intentName, PRIORITIES[priority || ""]]);
+    INTENT_PRIORITY_NAMES.sort((a, b) => {
+      return util.cmp(-a[1], -b[1]) || util.cmp(a[0], b[0]);
+    });
+    INTENT_NAMES = INTENT_PRIORITY_NAMES.map(i => i[0]);
+    INTENTS[intentName] = { matcher };
+  };
+
+  exports.parse = function parse(text, disableFallback = false) {
     text = text.trim();
     text = text.replace(/\s\s+/g, " ");
-    for (const name in INTENTS) {
+    for (const name of INTENT_NAMES) {
       const matcher = INTENTS[name].matcher;
       const match = matcher.match(text);
       if (match) {
@@ -239,12 +203,19 @@ this.intentParser = (function() {
         return match;
       }
     }
+    if (disableFallback) {
+      return null;
+    }
     log.info(`Parsed as fallback intent: ${JSON.stringify(text)}`);
     return {
       name: DEFAULT_INTENT,
       slots: { [DEFAULT_SLOT]: text },
       utterance: text,
     };
+  };
+
+  exports.getNamesByPriority = function() {
+    return INTENT_NAMES;
   };
 
   return exports;
